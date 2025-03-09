@@ -22,44 +22,63 @@ export default function EditProfile() {
   useEffect(() => {
     async function fetchProfile() {
       if (!user) return;
-
+      
+      setLoading(true); // Set loading before fetching
+  
       const { data, error } = await supabase
         .from("users")
         .select("name, bio, website")
         .eq("kinde_id", user.id)
         .single();
-
+  
       if (error) {
         console.error("Error fetching profile:", error);
-        return;
+      } else {
+        setProfile({
+          name: data?.name || "",
+          bio: data?.bio || "",
+          website: data?.website || "",
+        });
       }
-
-      setProfile({
-        name: data.name || "",
-        bio: data.bio || "",
-        website: data.website || "",
-      });
-      setLoading(false);
+      
+      setLoading(false); // Always set loading to false after fetching
     }
-
+  
     fetchProfile();
   }, [user]);
+  
 
   // Handle form submission
   async function handleSubmit(e) {
     e.preventDefault();
     if (!user) return;
-
+  
+    // Check if there are changes before updating
+    const { data: existingProfile } = await supabase
+      .from("users")
+      .select("name, bio, website")
+      .eq("kinde_id", user.id)
+      .single();
+  
+    if (
+      existingProfile.name === profile.name &&
+      existingProfile.bio === profile.bio &&
+      existingProfile.website === profile.website
+    ) {
+      console.log("No changes detected, skipping update.");
+      return;
+    }
+  
     const { error } = await supabase
       .from("users")
       .update(profile)
       .eq("kinde_id", user.id);
-
+  
     if (error) {
       console.error("Error updating profile:", error);
       return;
     }
-    router.push("/profile"); // Redirect after save
+    router.push("/profile");
   }
 
   return (
